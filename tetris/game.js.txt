@@ -1,0 +1,178 @@
+const BOARD_WIDTH = 10;
+const BOARD_HEIGHT = 20;
+const shapes = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+const colors = {
+  I: '#00BCD4', O: '#FFEB3B', T: '#9C27B0',
+  S: '#4CAF50', Z: '#F44336', J: '#2196F3', L: '#FF9800'
+};
+
+let board = [];
+let currentPiece = null;
+let score = 0;
+let gameInterval;
+
+// 初始化游戏
+function initBoard() {
+    const container = document.getElementById('board');
+    container.innerHTML = '';
+    board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+    
+    for (let i = 0; i < BOARD_HEIGHT * BOARD_WIDTH; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        container.appendChild(cell);
+    }
+}
+
+// 生成新方块
+function createPiece() {
+    const type = shapes[Math.floor(Math.random() * shapes.length)];
+    return {
+        type,
+        shape: getShape(type),
+        x: 4,
+        y: 0,
+        color: colors[type]
+    };
+}
+
+// 方块形状定义
+function getShape(type) {
+    const shapes = {
+        I: [[1,1,1,1]],
+        O: [[1,1],[1,1]],
+        T: [[0,1,0],[1,1,1]],
+        S: [[0,1,1],[1,1,0]],
+        Z: [[1,1,0],[0,1,1]],
+        J: [[1,0,0],[1,1,1]],
+        L: [[0,0,1],[1,1,1]]
+    };
+    return shapes[type];
+}
+
+// 游戏主循环
+function gameLoop() {
+    moveDown();
+    updateDisplay();
+}
+
+// 移动控制
+function moveDown() {
+    currentPiece.y++;
+    if (checkCollision()) {
+        currentPiece.y--;
+        lockPiece();
+    }
+}
+
+function moveLeft() {
+    currentPiece.x--;
+    if (checkCollision()) currentPiece.x++;
+}
+
+function moveRight() {
+    currentPiece.x++;
+    if (checkCollision()) currentPiece.x--;
+}
+
+// 旋转控制
+function rotate() {
+    const originalShape = currentPiece.shape;
+    currentPiece.shape = currentPiece.shape[0].map((_, i) =>
+        currentPiece.shape.map(row => row[i]).reverse()
+    );
+    if (checkCollision()) currentPiece.shape = originalShape;
+}
+
+// 碰撞检测
+function checkCollision() {
+    return currentPiece.shape.some((row, dy) => 
+        row.some((cell, dx) => {
+            const x = currentPiece.x + dx;
+            const y = currentPiece.y + dy;
+            return cell && (x < 0 || x >= BOARD_WIDTH || y >= BOARD_HEIGHT || board[y]?.[x]);
+        })
+    );
+}
+
+// 锁定方块
+function lockPiece() {
+    currentPiece.shape.forEach((row, dy) => {
+        row.forEach((cell, dx) => {
+            if (cell) {
+                const y = currentPiece.y + dy;
+                const x = currentPiece.x + dx;
+                if (y >= 0) board[y][x] = currentPiece.type;
+            }
+        });
+    });
+    checkLines();
+    currentPiece = createPiece();
+    if (checkCollision()) gameOver();
+}
+
+// 计分和消除行
+function checkLines() {
+    for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+        if (board[y].every(cell => cell)) {
+            board.splice(y, 1);
+            board.unshift(Array(BOARD_WIDTH).fill(0));
+            score += 100;
+            document.getElementById('score').textContent = score;
+        }
+    }
+}
+
+// 更新显示
+function updateDisplay() {
+    const cells = document.getElementsByClassName('cell');
+    board.forEach((row, y) => {
+        row.forEach((cell, x) => {
+            const index = y * BOARD_WIDTH + x;
+            cells[index].className = `cell ${cell || ''}`;
+            cells[index].style.backgroundColor = cell ? colors[cell] : '';
+        });
+    });
+}
+
+// 游戏控制
+document.getElementById('startBtn').addEventListener('click', () => {
+    initBoard();
+    score = 0;
+    currentPiece = createPiece();
+    clearInterval(gameInterval);
+    gameInterval = setInterval(gameLoop, 1000);
+});
+
+// 移动控制（适配手机触控）
+document.addEventListener('keydown', (e) => {
+    if (!currentPiece) return;
+    switch(e.key) {
+        case 'ArrowLeft': moveLeft(); break;
+        case 'ArrowRight': moveRight(); break;
+        case 'ArrowDown': moveDown(); break;
+        case 'ArrowUp': rotate(); break;
+    }
+    updateDisplay();
+});
+
+// 游戏结束
+function gameOver() {
+    clearInterval(gameInterval);
+    alert(`游戏结束！得分：${score}`);
+}
+
+// 手机触控支持（简单版）
+let touchStartX = 0;
+document.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+});
+document.addEventListener('touchend', (e) => {
+    const deltaX = e.changedTouches[0].clientX - touchStartX;
+    if (Math.abs(deltaX) > 30) {
+        deltaX > 0 ? moveRight() : moveLeft();
+    } else {
+        rotate();
+    }
+    updateDisplay();
+});

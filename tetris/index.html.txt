@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微信俄罗斯方块</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div id="board" class="game-board"></div>
+        <div class="info-panel">
+            <div>得分：<span id="score">0</span></div>
+            <button id="startBtn">开始游戏</button>
+            <div>下一块：</div>
+            <div id="next" class="next-block"></div>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
